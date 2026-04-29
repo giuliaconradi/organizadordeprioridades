@@ -27,7 +27,12 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col font-sans">
+        {children}
+        <footer className="px-6 py-6 text-center text-xs text-foreground/40">
+          Copyright feito por Giu 2026
+        </footer>
+      </body>
     </html>
   );
 }
