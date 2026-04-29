@@ -33,8 +33,14 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         {children}
-        <footer className="px-6 py-6 text-center text-xs text-foreground/40">
-          Copyright feito por Giu 2026
+        <footer className="flex flex-col items-center gap-1 px-6 py-6 text-center text-xs text-foreground/40">
+          <span>Copyright feito por Giu 2026</span>
+          <a
+            href="/admin/entrar"
+            className="text-foreground/30 transition-colors hover:text-foreground/70"
+          >
+            admin
+          </a>
         </footer>
       </body>
     </html>

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState, type FormEvent, type ReactNode } from "react";
 
 type Priority = "alta" | "media" | "baixa";
@@ -165,6 +166,8 @@ export function TaskForm() {
   const [priority, setPriority] = useState<Priority | null>(null);
   const [size, setSize] = useState<Size | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const filled = [
     description.trim().length > 0,
@@ -172,13 +175,36 @@ export function TaskForm() {
     size !== null,
   ].filter(Boolean).length;
   const isValid = filled === 3;
+  const canSubmit = isValid && !submitting;
   const progressLabel = PROGRESS_LABELS[filled];
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!isValid) return;
-    console.log({ description: description.trim(), priority, size });
-    setSubmitted(true);
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: description.trim(),
+          priority,
+          size,
+        }),
+      });
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as
+          | { error?: string }
+          | null;
+        throw new Error(payload?.error ?? "Não consegui salvar a tarefa.");
+      }
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Algo deu errado.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function reset() {
@@ -186,6 +212,7 @@ export function TaskForm() {
     setPriority(null);
     setSize(null);
     setSubmitted(false);
+    setError(null);
   }
 
   if (submitted) {
@@ -213,12 +240,27 @@ export function TaskForm() {
           Mais uma!
           <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </button>
+        <Link
+          href="/tarefas"
+          className="mt-3 inline-flex h-10 items-center gap-1 rounded-full px-4 text-sm font-medium text-foreground/60 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+        >
+          Ver minhas tarefas
+          <ArrowRightIcon className="h-3.5 w-3.5" />
+        </Link>
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-7" noValidate>
+      {error ? (
+        <div
+          role="alert"
+          className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400"
+        >
+          {error}
+        </div>
+      ) : null}
       <div className="flex items-center justify-between">
         <span
           aria-live="polite"
@@ -352,17 +394,18 @@ export function TaskForm() {
 
       <button
         type="submit"
-        disabled={!isValid}
+        disabled={!canSubmit}
+        aria-busy={submitting}
         className={[
           "group inline-flex h-14 w-full items-center justify-center gap-2 rounded-full px-6 text-base font-semibold transition-all duration-200",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
           isValid
-            ? "bg-gradient-to-r from-brand to-fuchsia-500 text-brand-contrast shadow-[0_8px_24px_-8px_rgba(130,10,209,0.5)] hover:scale-[1.01] hover:shadow-[0_12px_32px_-8px_rgba(130,10,209,0.6)] active:scale-[0.99]"
+            ? "bg-gradient-to-r from-brand to-fuchsia-500 text-brand-contrast shadow-[0_8px_24px_-8px_rgba(130,10,209,0.5)] hover:scale-[1.01] hover:shadow-[0_12px_32px_-8px_rgba(130,10,209,0.6)] active:scale-[0.99] disabled:cursor-wait disabled:opacity-80 disabled:hover:scale-100"
             : "cursor-not-allowed bg-foreground/10 text-foreground/30",
         ].join(" ")}
       >
-        Cadastrar
-        {isValid ? (
+        {submitting ? "Cadastrando…" : "Cadastrar"}
+        {isValid && !submitting ? (
           <ArrowRightIcon className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
         ) : null}
       </button>
